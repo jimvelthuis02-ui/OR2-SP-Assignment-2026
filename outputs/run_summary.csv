@@ -1,0 +1,12 @@
+metric,value
+solver,appsi_highs
+n_patients,6
+saa_scenarios_per_replication_Z,20
+saa_replications_N,5
+test_scenarios_Z_test,200
+weight_waiting,0.6
+weight_idle,0.2
+weight_overtime,0.2
+mean_objective,78.58200000000001
+std_objective,14.795826979253306
+test_objective,84.59100000000001
