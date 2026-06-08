@@ -1,4 +1,0 @@
-solver=appsi_highs
-status=ok
-termination=optimal
-objective=50.21854999679918

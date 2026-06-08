@@ -1,30 +1,37 @@
 import numpy as np
 
 
-def generate_scenarios(mean, std, n_patients, Z):
+def generate_specialty_scenarios(
+    patient_specialties,
+    specialty_duration_dict,
+    Z,
+    seed=None
+):
     """
-    Simple lognormal sampling
+    Generate empirical duration scenarios based on patient specialties.
     """
+
+    if seed is not None:
+        np.random.seed(seed)
+
     scenarios = []
 
-    for z in range(Z):
-        durations = np.random.lognormal(mean, std, n_patients)
-        scenarios.append(durations)
-
-    return np.array(scenarios)
-
-def generate_empirical_scenarios(durations_data, n_patients, Z):
-    """
-    Empirical sampling from real dataset (recommended for assignment)
-    """
-    scenarios = []
+    n_patients = len(patient_specialties)
 
     for z in range(Z):
-        sampled = np.random.choice(
-            durations_data,
-            size=n_patients,
-            replace=True
-        )
-        scenarios.append(sampled)
+
+        scenario = []
+
+        for p in range(n_patients):
+
+            specialty = patient_specialties[p]
+
+            sampled_duration = np.random.choice(
+                specialty_duration_dict[specialty]
+            )
+
+            scenario.append(sampled_duration)
+
+        scenarios.append(scenario)
 
     return np.array(scenarios)
