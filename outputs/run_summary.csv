@@ -13,6 +13,9 @@ ci_lower,12164.737477950943
 ci_upper,12321.993722049052
 test_objective_session_mean,73.48914523809523
 test_objective_patient_weighted,76.39167485907555
+avg_saa_iteration_runtime_seconds,64.3411903299857
+total_saa_runtime_seconds,643.4119032998569
+out_of_sample_runtime_seconds,374.84531829995103
 avg_waiting,13.259774520856821
 avg_idle,21.48247566063978
 avg_overtime,62.67369047619048

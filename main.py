@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 import scipy.stats as st
 import csv
+import time
 
 
 # ==================================================
@@ -54,6 +55,8 @@ df = pd.read_csv(data_path)
 
 print("\nDataset loaded successfully.")
 print(f"Rows in dataset: {len(df)}")
+
+script_start_time = time.perf_counter()
 
 
 # ==================================================
@@ -134,14 +137,12 @@ patient_specialties = list(
 )
 
 print("\nSelected patient specialties:")
-
-for p, specialty in enumerate(patient_specialties):
-
-    print(
-        f"Patient idx {p} | ID {patient_ids[p]} | "
-        f"Session {patient_sessions[p]} | Pos {patient_sequence_positions[p]} | "
-        f"Specialty {specialty}"
-    )
+specialty_counts = (
+    pd.Series(patient_specialties)
+    .value_counts()
+    .to_dict()
+)
+print(f"Specialty mix: {specialty_counts}")
 
 
 # ==================================================
@@ -266,6 +267,7 @@ if solver is None:
 # ==================================================
 
 objective_values = []
+iteration_runtime_seconds = []
 
 session_groups = list(
     df_subset.groupby("session_id_numeric", sort=True)
@@ -276,6 +278,7 @@ final_session_models = {}
 for i in range(N):
 
     print(f"\n--- SAA Iteration {i + 1} ---")
+    iteration_start_time = time.perf_counter()
 
     iteration_total_obj = 0.0
     iteration_models = {}
@@ -309,11 +312,14 @@ for i in range(N):
         iteration_models[session_id_int] = model
 
     objective_values.append(iteration_total_obj)
+    iteration_seconds = time.perf_counter() - iteration_start_time
+    iteration_runtime_seconds.append(iteration_seconds)
 
     print(
         f"Objective value (sum over sessions): "
         f"{iteration_total_obj:.2f}"
     )
+    print(f"Runtime (s): {iteration_seconds:.2f}")
 
     final_session_models = iteration_models
 
@@ -335,6 +341,9 @@ std_obj = np.std(
     objective_values,
     ddof=1
 )
+
+avg_iteration_runtime = float(np.mean(iteration_runtime_seconds))
+total_saa_runtime = float(np.sum(iteration_runtime_seconds))
 
 ci = st.t.interval(
     confidence=0.95,
@@ -359,6 +368,8 @@ print(
     f"95% confidence interval: "
     f"[{ci[0]:.2f}, {ci[1]:.2f}]"
 )
+print(f"Avg SAA iteration runtime (s): {avg_iteration_runtime:.2f}")
+print(f"Total SAA runtime (s): {total_saa_runtime:.2f}")
 
 
 # ==================================================
@@ -366,6 +377,7 @@ print(
 # ==================================================
 
 print("\n--- OUT-OF-SAMPLE TEST ---")
+oos_start_time = time.perf_counter()
 
 session_test_rows = []
 
@@ -419,8 +431,11 @@ test_obj_weighted = float(np.average(
     weights=[row["n_patients"] for row in session_test_rows],
 ))
 
+oos_runtime_seconds = time.perf_counter() - oos_start_time
+
 print(f"Test objective (session mean): {test_obj:.2f}")
 print(f"Test objective (patient-weighted): {test_obj_weighted:.2f}")
+print(f"Out-of-sample runtime (s): {oos_runtime_seconds:.2f}")
 
 
 # ==================================================
@@ -445,14 +460,7 @@ for row in df_subset.itertuples(index=False):
         as_float(final_session_models[session_id_int].S[local_idx])
     )
 
-for p in patients:
-
-    print(
-        f"Patient idx {p} | ID {patient_ids[p]} | "
-        f"Session {patient_sessions[p]} | Pos {patient_sequence_positions[p]} | "
-        f"Specialty {patient_specialties[p]}: "
-        f"{planned_start_times[p]:.2f}"
-    )
+print("Detailed patient-level start times are exported to CSV.")
 
 
 # ==================================================
@@ -678,6 +686,15 @@ summary_rows = [
     {"metric": "test_objective_patient_weighted",
      "value": test_obj_weighted},
 
+    {"metric": "avg_saa_iteration_runtime_seconds",
+     "value": avg_iteration_runtime},
+
+    {"metric": "total_saa_runtime_seconds",
+     "value": total_saa_runtime},
+
+    {"metric": "out_of_sample_runtime_seconds",
+     "value": oos_runtime_seconds},
+
     {"metric": "avg_waiting",
      "value": avg_waiting},
 
@@ -707,3 +724,7 @@ with summary_path.open(
     writer.writerows(summary_rows)
 
 print(f"Saved: {summary_path}")
+
+total_runtime_seconds = time.perf_counter() - script_start_time
+print("\n--- RUNTIME SUMMARY ---")
+print(f"Total script runtime (s): {total_runtime_seconds:.2f}")
